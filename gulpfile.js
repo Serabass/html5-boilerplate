@@ -14,6 +14,8 @@ var runSequence = require('run-sequence');
 var pkg = require('./package.json');
 var dirs = pkg['h5bp-configs'].directories;
 
+
+var bowerFiles = require('main-bower-files');
 // ---------------------------------------------------------------------
 // | Helper tasks                                                      |
 // ---------------------------------------------------------------------
@@ -142,11 +144,26 @@ gulp.task('lint:js', function () {
         dirs.src + '/js/*.js',
         dirs.test + '/*.js'
     ]).pipe(plugins.jscs())
-      .pipe(plugins.jshint())
-      .pipe(plugins.jshint.reporter('jshint-stylish'))
-      .pipe(plugins.jshint.reporter('fail'));
+        .pipe(plugins.jshint())
+        .pipe(plugins.jshint.reporter('jshint-stylish'))
+        .pipe(plugins.jshint.reporter('fail'));
 });
 
+gulp.task('build:ts', function () {
+    return gulp.src([dirs.src + '/**/*.ts'])
+        .pipe(plugins.sourcemaps.init())
+        .pipe(plugins.typescript({ target: 'es5', 'module': true }))
+        .pipe(plugins.sourcemaps.write('../dist/maps'))
+        .pipe(plugins.rename({ extname: '.js' }))
+        .pipe(gulp.dest(dirs.dist));
+});
+
+gulp.task('bower:inject', function () {
+    return gulp.src('./src/index.html')
+        .pipe(plugins.inject(gulp.src(bowerFiles(), { read: false }), { name: 'bower', relative: true }))
+        .pipe(gulp.dest('./dist'))
+    ;
+});
 
 // ---------------------------------------------------------------------
 // | Main tasks                                                        |
@@ -164,6 +181,7 @@ gulp.task('build', function (done) {
     runSequence(
         ['clean', 'lint:js'],
         'copy',
+        'bower:inject',
     done);
 });
 
